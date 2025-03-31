@@ -304,29 +304,31 @@ export const deleteNote = async (noteId: string): Promise<void> => {
 };
 
 // New API to toggle like on a note
-export const toggleLikeNote = async (noteId: string): Promise<Note> => {
+export const toggleLike = async (noteId: string): Promise<Note> => {
   try {
-    const { data } = await api.post<Note>(`/notes/${noteId}/like`);
-    // Ensure likes is always an array and handle both string IDs and User objects
-    const likes = (data.likes || []).map(like => 
-      typeof like === 'string' ? like : like.id
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("Please log in to like notes");
+    }
+
+    const { data } = await api.post<{ message: string; note: Note }>(
+      `/notes/${noteId}/like`,
+      {},
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
     );
-    return {
-      ...data,
-      id: data._id || data.id,
-      authorId: data.author?._id || data.author?.id || '',
-      likes,
-      files: data.files?.map(file => ({
-        ...file,
-        url: file.url // Keep the relative URL as is
-      })) || [],
-      isPublic: data.isPublic ?? true,
-      author: data.author || null,
-      createdAt: data.createdAt || new Date().toISOString(),
-      updatedAt: data.updatedAt || new Date().toISOString(),
-    };
+
+    // Return the updated note
+    return data.note;
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to like note");
+    console.error('Error toggling like:', error);
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw new Error(error.message || "Failed to toggle like");
   }
 };
 

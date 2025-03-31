@@ -294,59 +294,47 @@ export const deleteNote = async (req: Request, res: Response) => {
 
 export const toggleLike = async (req: Request, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: 'Not authorized' });
+    const { noteId } = req.params;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Please log in to like notes" });
     }
 
-    const note = await Note.findById(req.params.id);
-
+    const note = await Note.findById(noteId);
     if (!note) {
-      return res.status(404).json({ message: 'Note not found' });
+      return res.status(404).json({ message: "Note not found" });
     }
 
-    const likeIndex = note.likes.indexOf(req.user._id);
-    if (likeIndex === -1) {
-      note.likes.push(req.user._id);
+    // Check if user has already liked the note
+    const hasLiked = note.likes.includes(userId);
+
+    if (hasLiked) {
+      // Unlike: Remove user from likes array
+      note.likes = note.likes.filter(id => !id.equals(userId));
     } else {
-      note.likes.splice(likeIndex, 1);
+      // Like: Add user to likes array
+      note.likes.push(userId);
     }
 
+    // Save the updated note
     await note.save();
 
-    // Populate the note with author and likes information before sending the response
-    const populatedNote = await Note.findById(note._id)
+    // Populate the likes array with user details
+    const updatedNote = await Note.findById(noteId)
       .populate('author', 'username email')
-      .populate('likes', 'username email') as PopulatedNote | null;
+      .populate('likes', 'username email');
 
-    if (!populatedNote) {
-      return res.status(404).json({ message: 'Note not found after update' });
-    }
-
-    // Format the response to match the frontend's expected structure
-    const formattedNote = {
-      ...populatedNote.toObject(),
-      id: populatedNote._id,
-      authorId: populatedNote.author._id,
-      likes: populatedNote.likes.map((like) => ({
-        id: like._id,
-        username: like.username,
-        email: like.email
-      })),
-      files: populatedNote.files || [],
-      isPublic: populatedNote.isPublic,
-      author: {
-        id: populatedNote.author._id,
-        username: populatedNote.author.username,
-        email: populatedNote.author.email
-      },
-      createdAt: populatedNote.createdAt,
-      updatedAt: populatedNote.updatedAt
-    };
-
-    res.json(formattedNote);
+    res.json({
+      message: hasLiked ? "Note unliked successfully" : "Note liked successfully",
+      note: updatedNote
+    });
   } catch (error) {
     console.error('Error toggling like:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ 
+      message: "Failed to toggle like",
+      error: error instanceof Error ? error.message : "Unknown error occurred"
+    });
   }
 };
 
