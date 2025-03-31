@@ -1,5 +1,4 @@
-
-import { Note, User, Branch, Year, Filter } from "../types";
+import { Note, User, Branch, Year, Filter, NoteFile } from "../types";
 
 // Mock data for branches
 const BRANCHES: Branch[] = [
@@ -173,11 +172,11 @@ export const getNotes = (filter: Filter = {}): Promise<Note[]> => {
     let filteredNotes = [...NOTES];
     
     // Apply filters
-    if (filter.branch) {
+    if (filter.branch && filter.branch !== 'all') {
       filteredNotes = filteredNotes.filter((note) => note.branch === filter.branch);
     }
     
-    if (filter.year) {
+    if (filter.year && filter.year !== 'all') {
       filteredNotes = filteredNotes.filter((note) => note.year === filter.year);
     }
     

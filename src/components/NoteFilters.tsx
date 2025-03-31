@@ -77,7 +77,7 @@ const NoteFilters: React.FC<NoteFiltersProps> = ({ filter, setFilter }) => {
           <div className="space-y-2">
             <Label htmlFor="branch">Branch</Label>
             <Select
-              value={filter.branch || ""}
+              value={filter.branch || "all"}
               onValueChange={handleBranchChange}
               disabled={isLoading}
             >
@@ -85,7 +85,7 @@ const NoteFilters: React.FC<NoteFiltersProps> = ({ filter, setFilter }) => {
                 <SelectValue placeholder="Select branch" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Branches</SelectItem>
+                <SelectItem value="all">All Branches</SelectItem>
                 {branches.map((branch) => (
                   <SelectItem key={branch.id} value={branch.id}>
                     {branch.name}
@@ -98,7 +98,7 @@ const NoteFilters: React.FC<NoteFiltersProps> = ({ filter, setFilter }) => {
           <div className="space-y-2">
             <Label htmlFor="year">Year</Label>
             <Select
-              value={filter.year || ""}
+              value={filter.year || "all"}
               onValueChange={handleYearChange}
               disabled={isLoading}
             >
@@ -106,7 +106,7 @@ const NoteFilters: React.FC<NoteFiltersProps> = ({ filter, setFilter }) => {
                 <SelectValue placeholder="Select year" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Years</SelectItem>
+                <SelectItem value="all">All Years</SelectItem>
                 {years.map((year) => (
                   <SelectItem key={year.id} value={year.id}>
                     {year.name}
