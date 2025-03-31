@@ -44,9 +44,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   Welcome, {user.username}
                 </span>
                 <Button 
-                  variant="outline" 
+                  variant="secondary" 
                   size="sm" 
-                  className="border-primary-foreground hover:bg-primary-foreground/20"
                   onClick={() => logout()}
                 >
                   <LogOut className="h-4 w-4 mr-2" />
@@ -56,9 +55,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             ) : (
               <Link to="/login">
                 <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="border-primary-foreground hover:bg-primary-foreground/20"
+                  variant="secondary" 
+                  size="sm"
                 >
                   <User className="h-4 w-4 mr-2" />
                   <span>Login</span>
