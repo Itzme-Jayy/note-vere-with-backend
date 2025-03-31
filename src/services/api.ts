@@ -19,121 +19,6 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Mock data for branches
-const BRANCHES: Branch[] = [
-  { id: "cs", name: "Computer Science" },
-  { id: "it", name: "Information Technology" },
-  { id: "ee", name: "Electrical Engineering" },
-  { id: "ece", name: "Electronics & Communication" },
-  { id: "ete", name: "Electronics & Telecommunication" },
-  { id: "me", name: "Mechanical Engineering" },
-  { id: "prod", name: "Production Engineering" },
-  { id: "textile", name: "Textile Engineering" },
-  { id: "ce", name: "Civil Engineering" },
-  { id: "chem", name: "Chemical Engineering" },
-];
-
-// Mock data for years
-const YEARS: Year[] = [
-  { id: "1", name: "First Year" },
-  { id: "2", name: "Second Year" },
-  { id: "3", name: "Third Year" },
-  { id: "4", name: "Fourth Year" },
-];
-
-// Mock users
-const USERS: User[] = [
-  { id: "user1", username: "john_doe", email: "john@example.com" },
-  { id: "user2", username: "jane_smith", email: "jane@example.com" },
-];
-
-// Mock notes data
-let NOTES: Note[] = [
-  {
-    id: "note1",
-    title: "Data Structures and Algorithms",
-    content: "This note covers fundamental data structures like arrays, linked lists, trees, and basic algorithms.",
-    isPublic: true,
-    createdAt: new Date(2023, 5, 15).toISOString(),
-    updatedAt: new Date(2023, 5, 15).toISOString(),
-    branch: "cs",
-    year: "2",
-    subject: "Data Structures",
-    files: [
-      {
-        id: "file1",
-        name: "data_structures.pdf",
-        url: "/sample_files/data_structures.pdf",
-        type: "application/pdf",
-        size: 2500000,
-      },
-    ],
-    authorId: "user1",
-    likes: [],
-  },
-  {
-    id: "note2",
-    title: "Electric Circuits",
-    content: "Comprehensive notes on electric circuit analysis, Kirchhoff's laws, and circuit theorems.",
-    isPublic: true,
-    createdAt: new Date(2023, 4, 10).toISOString(),
-    updatedAt: new Date(2023, 4, 12).toISOString(),
-    branch: "ee",
-    year: "2",
-    subject: "Electric Circuits",
-    files: [],
-    authorId: "user2",
-    likes: [],
-  },
-  {
-    id: "note3",
-    title: "Thermodynamics Basics",
-    content: "Introduction to thermodynamics, covering laws of thermodynamics and basic concepts.",
-    isPublic: true,
-    createdAt: new Date(2023, 3, 5).toISOString(),
-    updatedAt: new Date(2023, 3, 5).toISOString(),
-    branch: "me",
-    year: "2",
-    subject: "Thermodynamics",
-    files: [
-      {
-        id: "file2",
-        name: "thermo_notes.pdf",
-        url: "/sample_files/thermo_notes.pdf",
-        type: "application/pdf",
-        size: 1800000,
-      },
-    ],
-    authorId: "user1",
-    likes: [],
-  },
-  {
-    id: "note4",
-    title: "Database Management Systems",
-    content: "Notes on database design, normalization, SQL, and transaction management.",
-    isPublic: false,
-    createdAt: new Date(2023, 6, 20).toISOString(),
-    updatedAt: new Date(2023, 6, 25).toISOString(),
-    branch: "cs",
-    year: "3",
-    subject: "DBMS",
-    files: [],
-    authorId: "user1",
-    likes: [],
-  },
-];
-
-// Simulate local storage persistence
-const initializeStorage = () => {
-  if (!localStorage.getItem("noteverse_notes")) {
-    localStorage.setItem("noteverse_notes", JSON.stringify(NOTES));
-  } else {
-    NOTES = JSON.parse(localStorage.getItem("noteverse_notes") || "[]");
-  }
-};
-
-initializeStorage();
-
 // Auth APIs
 export const getCurrentUser = (): User | null => {
   const userJson = localStorage.getItem("user");
@@ -183,12 +68,29 @@ export const getNotes = async (filter: Filter = {}): Promise<Note[]> => {
     const params = new URLSearchParams();
     if (filter.branch && filter.branch !== 'all') params.append('branch', filter.branch);
     if (filter.year && filter.year !== 'all') params.append('year', filter.year);
-    if (filter.subject) params.append('subject', filter.subject);
+    if (filter.subject && filter.subject !== 'all') params.append('subject', filter.subject);
     if (filter.search) params.append('search', filter.search);
     if (filter.author) params.append('author', filter.author);
 
     const { data } = await api.get<Note[]>(`/notes?${params.toString()}`);
-    return data;
+    // Format each note in the response to ensure consistent data structure
+    return data.map(note => ({
+      ...note,
+      id: note._id || note.id,
+      authorId: note.author?._id || note.authorId,
+      likes: Array.isArray(note.likes) ? note.likes.map(like => 
+        typeof like === 'string' ? like : like._id || like.id
+      ) : [],
+      files: note.files || [],
+      isPublic: note.isPublic,
+      author: note.author ? {
+        id: note.author._id || note.author.id,
+        username: note.author.username,
+        email: note.author.email
+      } : undefined,
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt
+    }));
   } catch (error: any) {
     throw new Error(error.response?.data?.message || "Failed to fetch notes");
   }
@@ -196,26 +98,76 @@ export const getNotes = async (filter: Filter = {}): Promise<Note[]> => {
 
 export const getUserNotes = async (userId: string): Promise<Note[]> => {
   try {
+    // Check if user is authenticated
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("Please log in to view your notes");
+    }
+
+    // Get the current user's ID
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error("User not found");
+    }
+
+    // Only allow users to view their own notes
+    if (currentUser.id !== userId) {
+      throw new Error("Not authorized to view these notes");
+    }
+
+    console.log('Fetching notes for user:', userId);
+    console.log('Current user:', currentUser);
+    console.log('Auth token present:', !!token);
+
     const { data } = await api.get<Note[]>(`/notes?author=${userId}`);
+    console.log('Received notes data:', data);
+    
+    if (!Array.isArray(data)) {
+      console.error('Received invalid data format:', data);
+      throw new Error('Invalid response format from server');
+    }
+
     // Format each note in the response to ensure consistent data structure
-    return data.map(note => ({
-      ...note,
-      id: note._id || note.id,
-      authorId: note.author?._id || note.author?.id || '',
-      likes: (note.likes || []).map(like => 
-        typeof like === 'string' ? like : like.id
-      ),
-      files: note.files?.map(file => ({
-        ...file,
-        url: file.url // Keep the relative URL as is
-      })) || [],
-      isPublic: note.isPublic ?? true, // Ensure isPublic is always defined
-      author: note.author || null, // Ensure author is included
-      createdAt: note.createdAt || new Date().toISOString(),
-      updatedAt: note.updatedAt || new Date().toISOString(),
-    }));
+    return data.map(note => {
+      try {
+        return {
+          ...note,
+          id: note._id || note.id,
+          authorId: note.author?._id || note.authorId,
+          likes: Array.isArray(note.likes) ? note.likes.map(like => 
+            typeof like === 'string' ? like : like._id || like.id
+          ) : [],
+          files: note.files || [],
+          isPublic: note.isPublic,
+          author: note.author ? {
+            id: note.author._id || note.author.id,
+            username: note.author.username,
+            email: note.author.email
+          } : undefined,
+          createdAt: note.createdAt,
+          updatedAt: note.updatedAt
+        };
+      } catch (error) {
+        console.error('Error formatting note:', error);
+        console.error('Problematic note:', note);
+        throw error;
+      }
+    });
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to fetch user notes");
+    console.error('Error fetching user notes:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      stack: error.stack
+    });
+    
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw new Error(error.message || "Failed to fetch user notes");
   }
 };
 
@@ -257,15 +209,21 @@ export const createNote = async (noteData: Partial<Note>): Promise<Note> => {
       throw new Error("Please log in to create a note");
     }
 
+    // Get current user
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error("User not found");
+    }
+
     // Format files to match backend schema
     const formattedFiles = noteData.files?.map(file => ({
       name: file.name,
-      url: file.url, // Keep the relative URL as is
+      url: file.url,
       type: file.type,
       size: file.size
     })) || [];
 
-    console.log('Creating note with data:', {
+    const notePayload = {
       title: noteData.title,
       content: noteData.content,
       isPublic: noteData.isPublic ?? true,
@@ -273,17 +231,12 @@ export const createNote = async (noteData: Partial<Note>): Promise<Note> => {
       year: noteData.year,
       subject: noteData.subject,
       files: formattedFiles,
-    });
+      author: currentUser.id // Explicitly set the author ID
+    };
 
-    const { data } = await api.post<Note>("/notes", {
-      title: noteData.title,
-      content: noteData.content,
-      isPublic: noteData.isPublic ?? true,
-      branch: noteData.branch,
-      year: noteData.year,
-      subject: noteData.subject,
-      files: formattedFiles,
-    }, {
+    console.log('Creating note with data:', notePayload);
+
+    const { data } = await api.post<Note>("/notes", notePayload, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
@@ -292,15 +245,18 @@ export const createNote = async (noteData: Partial<Note>): Promise<Note> => {
     console.log('Note created successfully:', data);
 
     // Return the note with properly formatted data
-    return {
+    const formattedNote = {
       ...data,
       id: data._id || data.id,
-      authorId: data.author?._id || data.author?.id || '',
+      authorId: data.author?._id || data.author?.id || currentUser.id,
       files: data.files?.map(file => ({
         ...file,
-        url: file.url // Keep the relative URL as is
+        url: file.url
       })) || [],
     };
+
+    console.log('Formatted note for response:', formattedNote);
+    return formattedNote;
   } catch (error: any) {
     console.error('Error creating note:', error);
     if (error.response?.data?.errors) {
@@ -406,35 +362,64 @@ export const toggleNotePrivacy = async (noteId: string): Promise<Note> => {
 };
 
 // New API to get user profile info with their notes
-export const getUserProfile = (userId: string): Promise<{user: User, notes: Note[]}> => {
-  return new Promise((resolve, reject) => {
-    const user = USERS.find(u => u.id === userId);
-    
-    if (!user) {
-      return reject(new Error("User not found"));
-    }
-    
-    getNotes({ author: userId }).then(notes => {
-      resolve({ user, notes });
-    });
-  });
+export const getUserProfile = async (userId: string): Promise<{user: User, notes: Note[]}> => {
+  try {
+    const [userData, notesData] = await Promise.all([
+      api.get<User>(`/users/${userId}`),
+      api.get<Note[]>(`/notes?author=${userId}`)
+    ]);
+
+    return {
+      user: userData.data,
+      notes: notesData.data.map(note => ({
+        ...note,
+        id: note._id || note.id,
+        authorId: note.author?._id || note.authorId,
+        likes: Array.isArray(note.likes) ? note.likes.map(like => 
+          typeof like === 'string' ? like : like._id || like.id
+        ) : [],
+        files: note.files || [],
+        isPublic: note.isPublic,
+        author: note.author ? {
+          id: note.author._id || note.author.id,
+          username: note.author.username,
+          email: note.author.email
+        } : undefined,
+        createdAt: note.createdAt,
+        updatedAt: note.updatedAt
+      }))
+    };
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to fetch user profile");
+  }
 };
 
 // Metadata APIs
-export const getBranches = (): Promise<Branch[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(BRANCHES);
-    }, 300);
-  });
+export const getBranches = async (): Promise<Branch[]> => {
+  try {
+    const { data } = await api.get<Branch[]>('/branches');
+    return data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to fetch branches");
+  }
 };
 
-export const getYears = (): Promise<Year[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(YEARS);
-    }, 300);
-  });
+export const getYears = async (): Promise<Year[]> => {
+  try {
+    const { data } = await api.get<Year[]>('/years');
+    return data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to fetch years");
+  }
+};
+
+export const getUserById = async (userId: string): Promise<User> => {
+  try {
+    const { data } = await api.get<User>(`/users/${userId}`);
+    return data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to fetch user");
+  }
 };
 
 // File APIs - In a real app, this would handle file uploads to a server
