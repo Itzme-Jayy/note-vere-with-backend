@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -57,9 +56,64 @@ const MyNotes = () => {
   };
   
   const handleNoteUpdated = (updatedNote: Note) => {
-    setNotes(prevNotes => 
-      prevNotes.map(note => note.id === updatedNote.id ? updatedNote : note)
-    );
+    // Format the updated note to ensure consistent data structure
+    const formattedNote = {
+      ...updatedNote,
+      id: updatedNote._id || updatedNote.id,
+      authorId: updatedNote.author?._id || updatedNote.authorId,
+      likes: Array.isArray(updatedNote.likes) ? updatedNote.likes.map(like => 
+        typeof like === 'string' ? like : like._id || like.id
+      ) : [],
+      files: updatedNote.files || [],
+      isPublic: updatedNote.isPublic,
+      author: updatedNote.author ? {
+        id: updatedNote.author._id || updatedNote.author.id,
+        username: updatedNote.author.username,
+        email: updatedNote.author.email
+      } : undefined,
+      createdAt: updatedNote.createdAt,
+      updatedAt: updatedNote.updatedAt
+    };
+
+    // Update the notes state
+    setNotes(prevNotes => {
+      const noteIndex = prevNotes.findIndex(n => 
+        (n._id || n.id) === (formattedNote._id || formattedNote.id)
+      );
+      
+      if (noteIndex === -1) {
+        // If note doesn't exist, add it
+        return [...prevNotes, formattedNote];
+      }
+      
+      // If note exists, update it
+      const newNotes = [...prevNotes];
+      newNotes[noteIndex] = formattedNote;
+      return newNotes;
+    });
+
+    // Update filtered notes if there's a search term
+    if (searchTerm) {
+      setFilteredNotes(prevNotes => {
+        const noteIndex = prevNotes.findIndex(n => 
+          (n._id || n.id) === (formattedNote._id || formattedNote.id)
+        );
+        
+        if (noteIndex === -1) {
+          // If note doesn't exist in filtered results, add it if it matches the search
+          if (formattedNote.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              formattedNote.content.toLowerCase().includes(searchTerm.toLowerCase())) {
+            return [...prevNotes, formattedNote];
+          }
+          return prevNotes;
+        }
+        
+        // If note exists in filtered results, update it
+        const newNotes = [...prevNotes];
+        newNotes[noteIndex] = formattedNote;
+        return newNotes;
+      });
+    }
   };
 
   return (

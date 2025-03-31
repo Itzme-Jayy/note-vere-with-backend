@@ -1,12 +1,13 @@
-
 export interface User {
   id: string;
+  _id?: string;
   username: string;
   email: string;
 }
 
 export interface Note {
   id: string;
+  _id?: string;
   title: string;
   content: string;
   isPublic: boolean;
@@ -18,7 +19,7 @@ export interface Note {
   files: NoteFile[];
   authorId: string;
   author?: User;
-  likes: string[]; // Array of user IDs who liked the note
+  likes: (string | User)[]; // Array of user IDs or User objects who liked the note
 }
 
 export interface NoteFile {

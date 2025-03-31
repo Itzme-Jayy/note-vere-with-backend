@@ -1,69 +1,75 @@
-# Welcome to your Lovable project
+# NoteVerse Exchange
 
-## Project info
+A platform for sharing and managing educational notes among students.
 
-**URL**: https://lovable.dev/projects/f69bc9ba-c553-46e3-b1f0-47051c0c5c83
+## Features
 
-## How can I edit this code?
+- Create, edit, and delete notes
+- Toggle note privacy (public/private)
+- Like and save notes
+- Search and filter notes by branch, year, and subject
+- File attachments support
+- User authentication
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- Frontend: React with TypeScript
+- Backend: Node.js with Express
+- Database: MongoDB
+- Authentication: JWT
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f69bc9ba-c553-46e3-b1f0-47051c0c5c83) and start prompting.
+## Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js (v14 or higher)
+- MongoDB
+- npm or yarn
 
-**Use your preferred IDE**
+## Setup
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. Clone the repository:
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```bash
+git clone https://github.com/yourusername/noteverse-exchange.git
+cd noteverse-exchange
+```
 
-Follow these steps:
+2. Install dependencies:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+```bash
+# Install frontend dependencies
+cd frontend
+npm install
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Install backend dependencies
+cd ../backend
+npm install
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3. Set up environment variables:
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+   - Create `.env` files in both frontend and backend directories
+   - Add necessary environment variables (see `.env.example`)
+
+4. Start the development servers:
+
+```bash
+# Start backend server
+cd backend
+npm run dev
+
+# Start frontend server (in a new terminal)
+cd frontend
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Contributing
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-**Use GitHub Codespaces**
+## License
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/f69bc9ba-c553-46e3-b1f0-47051c0c5c83) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

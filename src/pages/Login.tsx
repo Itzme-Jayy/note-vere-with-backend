@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,7 +22,9 @@ const Login = () => {
 
     try {
       await login(email, password);
-      navigate("/my-notes");
+      setTimeout(() => {
+        navigate("/my-notes", { replace: true });
+      }, 100);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

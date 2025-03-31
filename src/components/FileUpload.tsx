@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,32 +50,34 @@ const FileUpload: React.FC<FileUploadProps> = ({ files, setFiles }) => {
           continue;
         }
         
-        // Simulate upload progress
-        const interval = setInterval(() => {
-          setUploadProgress(prev => {
-            const newProgress = prev + Math.random() * 10;
-            return newProgress >= 100 ? 100 : newProgress;
+        try {
+          // Upload file with progress tracking
+          const uploadedFile = await uploadFile(file, (progress) => {
+            setUploadProgress(progress);
           });
-        }, 200);
-        
-        // Upload file
-        const uploadedFile = await uploadFile(file);
-        
-        clearInterval(interval);
-        setUploadProgress(100);
-        
-        // Add to files list
-        setFiles(prevFiles => [...prevFiles, uploadedFile]);
-        
-        toast({
-          title: "File uploaded",
-          description: `${file.name} was uploaded successfully`,
-        });
+          
+          // Add to files list
+          setFiles(prevFiles => [...prevFiles, uploadedFile]);
+          
+          toast({
+            title: "File uploaded",
+            description: `${file.name} was uploaded successfully`,
+          });
+        } catch (uploadError: any) {
+          console.error('File upload error:', uploadError);
+          toast({
+            title: "Upload failed",
+            description: uploadError.message || "There was an error uploading your file",
+            variant: "destructive",
+          });
+          throw uploadError; // Re-throw to stop processing other files
+        }
       }
     } catch (error) {
+      console.error('Error in handleFileSelect:', error);
       toast({
         title: "Upload failed",
-        description: "There was an error uploading your file",
+        description: error instanceof Error ? error.message : "There was an error uploading your file",
         variant: "destructive",
       });
     } finally {

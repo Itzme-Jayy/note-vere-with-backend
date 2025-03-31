@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Note } from "@/types";
@@ -23,8 +22,10 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onNoteUpdated }) => {
   // Safety check - ensure note.likes is always an array
   const likes = note.likes || [];
   
-  // Only check if liked when user exists
-  const isLiked = user ? likes.includes(user.id) : false;
+  // Check if liked by converting user IDs to strings for comparison
+  const isLiked = user ? likes.some(like => 
+    (typeof like === 'string' ? like : like.id) === user.id
+  ) : false;
   
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigation
@@ -39,7 +40,8 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onNoteUpdated }) => {
     }
     
     try {
-      const updatedNote = await toggleLikeNote(note.id);
+      const noteId = note._id || note.id;
+      const updatedNote = await toggleLikeNote(noteId);
       if (onNoteUpdated) {
         onNoteUpdated(updatedNote);
       }
@@ -52,8 +54,9 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onNoteUpdated }) => {
     }
   };
 
+  const noteId = note._id || note.id;
   return (
-    <Link to={`/note/${note.id}`}>
+    <Link to={`/note/${noteId}`}>
       <Card className="note-card h-full flex flex-col transition-all hover:shadow-md">
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
@@ -64,11 +67,17 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onNoteUpdated }) => {
               <Lock className="h-4 w-4 text-muted-foreground" />
             )}
           </div>
-          <CardDescription className="flex flex-wrap gap-2 mt-2">
-            <Badge variant="outline">{note.branch}</Badge>
-            <Badge variant="outline">{note.year}</Badge>
-            {note.subject && <Badge>{note.subject}</Badge>}
-          </CardDescription>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {[
+              { key: 'branch', label: note.branch, variant: 'outline' as const },
+              { key: 'year', label: note.year, variant: 'outline' as const },
+              note.subject ? { key: 'subject', label: note.subject, variant: 'default' as const } : null
+            ].filter(Boolean).map(({ key, label, variant }) => (
+              <Badge key={`${noteId}-${key}`} variant={variant}>
+                {label}
+              </Badge>
+            ))}
+          </div>
         </CardHeader>
         <CardContent className="py-2 flex-grow">
           <p className="text-sm text-muted-foreground line-clamp-3">

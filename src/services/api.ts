@@ -1,10 +1,34 @@
 import { Note, User, Branch, Year, Filter, NoteFile } from "../types";
+import axios from "axios";
+
+export const API_URL = "http://localhost:5001/api";
+
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// Add token to requests if available
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 // Mock data for branches
 const BRANCHES: Branch[] = [
   { id: "cs", name: "Computer Science" },
+  { id: "it", name: "Information Technology" },
   { id: "ee", name: "Electrical Engineering" },
+  { id: "ece", name: "Electronics & Communication" },
+  { id: "ete", name: "Electronics & Telecommunication" },
   { id: "me", name: "Mechanical Engineering" },
+  { id: "prod", name: "Production Engineering" },
+  { id: "textile", name: "Textile Engineering" },
   { id: "ce", name: "Civil Engineering" },
   { id: "chem", name: "Chemical Engineering" },
 ];
@@ -106,323 +130,279 @@ const initializeStorage = () => {
   } else {
     NOTES = JSON.parse(localStorage.getItem("noteverse_notes") || "[]");
   }
-  
-  if (!localStorage.getItem("noteverse_currentUser")) {
-    localStorage.setItem("noteverse_currentUser", JSON.stringify(USERS[0]));
-  }
 };
 
 initializeStorage();
 
 // Auth APIs
 export const getCurrentUser = (): User | null => {
-  const userJson = localStorage.getItem("noteverse_currentUser");
+  const userJson = localStorage.getItem("user");
   return userJson ? JSON.parse(userJson) : null;
 };
 
-export const login = (email: string, password: string): Promise<User> => {
-  return new Promise((resolve, reject) => {
-    // In a real app, you would make an API call to verify credentials
-    // For this demo, we'll just find a user with the matching email
-    const user = USERS.find((u) => u.email === email);
-    
-    setTimeout(() => {
-      if (user && password === "password") { // Simple password check for demo
-        localStorage.setItem("noteverse_currentUser", JSON.stringify(user));
-        resolve(user);
-      } else {
-        reject(new Error("Invalid email or password"));
-      }
-    }, 500);
-  });
-};
-
-export const register = (username: string, email: string, password: string): Promise<User> => {
-  return new Promise((resolve, reject) => {
-    // In a real app, you would make an API call to create a new user
-    // For this demo, we'll just create a new user object
-    
-    // Check if email is already in use
-    const existingUser = USERS.find((u) => u.email === email);
-    if (existingUser) {
-      return reject(new Error("Email already in use"));
-    }
-    
-    const newUser: User = {
-      id: `user${USERS.length + 1}`,
-      username,
-      email,
+export const login = async (email: string, password: string): Promise<User> => {
+  try {
+    const { data } = await api.post<{ _id: string; username: string; email: string; token: string }>("/users/login", { email, password });
+    localStorage.setItem("token", data.token);
+    const user: User = {
+      id: data._id,
+      username: data.username,
+      email: data.email,
     };
-    
-    USERS.push(newUser);
-    localStorage.setItem("noteverse_currentUser", JSON.stringify(newUser));
-    
-    setTimeout(() => {
-      resolve(newUser);
-    }, 500);
-  });
+    localStorage.setItem("user", JSON.stringify(user));
+    return user;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Login failed");
+  }
 };
 
-export const logout = (): Promise<void> => {
-  return new Promise((resolve) => {
-    localStorage.removeItem("noteverse_currentUser");
-    setTimeout(resolve, 300);
-  });
+export const register = async (username: string, email: string, password: string): Promise<User> => {
+  try {
+    const { data } = await api.post<{ _id: string; username: string; email: string; token: string }>("/users/register", { username, email, password });
+    localStorage.setItem("token", data.token);
+    const user: User = {
+      id: data._id,
+      username: data.username,
+      email: data.email,
+    };
+    localStorage.setItem("user", JSON.stringify(user));
+    return user;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Registration failed");
+  }
+};
+
+export const logout = async (): Promise<void> => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
 };
 
 // Notes APIs
-export const getNotes = (filter: Filter = {}): Promise<Note[]> => {
-  return new Promise((resolve) => {
-    let filteredNotes = [...NOTES];
-    
-    // Apply filters
-    if (filter.branch && filter.branch !== 'all') {
-      filteredNotes = filteredNotes.filter((note) => note.branch === filter.branch);
-    }
-    
-    if (filter.year && filter.year !== 'all') {
-      filteredNotes = filteredNotes.filter((note) => note.year === filter.year);
-    }
-    
-    if (filter.subject) {
-      filteredNotes = filteredNotes.filter((note) => 
-        note.subject.toLowerCase().includes(filter.subject!.toLowerCase())
-      );
-    }
-    
-    if (filter.search) {
-      filteredNotes = filteredNotes.filter((note) => 
-        note.title.toLowerCase().includes(filter.search!.toLowerCase()) ||
-        note.content.toLowerCase().includes(filter.search!.toLowerCase())
-      );
-    }
-    
-    if (filter.author) {
-      filteredNotes = filteredNotes.filter((note) => note.authorId === filter.author);
-    }
-    
-    // Add author info
-    filteredNotes = filteredNotes.map((note) => ({
+export const getNotes = async (filter: Filter = {}): Promise<Note[]> => {
+  try {
+    const params = new URLSearchParams();
+    if (filter.branch && filter.branch !== 'all') params.append('branch', filter.branch);
+    if (filter.year && filter.year !== 'all') params.append('year', filter.year);
+    if (filter.subject) params.append('subject', filter.subject);
+    if (filter.search) params.append('search', filter.search);
+    if (filter.author) params.append('author', filter.author);
+
+    const { data } = await api.get<Note[]>(`/notes?${params.toString()}`);
+    return data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to fetch notes");
+  }
+};
+
+export const getUserNotes = async (userId: string): Promise<Note[]> => {
+  try {
+    const { data } = await api.get<Note[]>(`/notes?author=${userId}`);
+    // Format each note in the response to ensure consistent data structure
+    return data.map(note => ({
       ...note,
-      author: USERS.find((user) => user.id === note.authorId),
+      id: note._id || note.id,
+      authorId: note.author?._id || note.author?.id || '',
+      likes: (note.likes || []).map(like => 
+        typeof like === 'string' ? like : like.id
+      ),
+      files: note.files?.map(file => ({
+        ...file,
+        url: file.url // Keep the relative URL as is
+      })) || [],
+      isPublic: note.isPublic ?? true, // Ensure isPublic is always defined
+      author: note.author || null, // Ensure author is included
+      createdAt: note.createdAt || new Date().toISOString(),
+      updatedAt: note.updatedAt || new Date().toISOString(),
     }));
-    
-    // Filter out private notes that don't belong to the current user
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      filteredNotes = filteredNotes.filter((note) => 
-        note.isPublic || note.authorId === currentUser.id
-      );
-    } else {
-      filteredNotes = filteredNotes.filter((note) => note.isPublic);
-    }
-    
-    setTimeout(() => {
-      resolve(filteredNotes);
-    }, 500);
-  });
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to fetch user notes");
+  }
 };
 
-export const getUserNotes = (userId: string): Promise<Note[]> => {
-  return new Promise((resolve) => {
-    const userNotes = NOTES.filter((note) => note.authorId === userId);
-    
-    setTimeout(() => {
-      resolve(userNotes);
-    }, 500);
-  });
-};
-
-export const getNoteById = (noteId: string): Promise<Note | null> => {
-  return new Promise((resolve) => {
-    const note = NOTES.find((n) => n.id === noteId);
-    
-    if (note) {
-      const noteWithAuthor = {
-        ...note,
-        author: USERS.find((user) => user.id === note.authorId),
-      };
-      
-      setTimeout(() => {
-        resolve(noteWithAuthor);
-      }, 300);
-    } else {
-      setTimeout(() => {
-        resolve(null);
-      }, 300);
-    }
-  });
-};
-
-export const createNote = (noteData: Omit<Note, "id" | "createdAt" | "updatedAt" | "authorId" | "likes">): Promise<Note> => {
-  return new Promise((resolve, reject) => {
-    const currentUser = getCurrentUser();
-    
-    if (!currentUser) {
-      return reject(new Error("You must be logged in to create a note"));
-    }
-    
-    const newNote: Note = {
-      ...noteData,
-      id: `note${NOTES.length + 1}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      authorId: currentUser.id,
-      likes: [],
+export const getNoteById = async (noteId: string): Promise<Note> => {
+  try {
+    const { data } = await api.get<Note>(`/notes/${noteId}`);
+    // Format the response to ensure consistent data structure
+    return {
+      id: data._id || data.id,
+      title: data.title,
+      content: data.content,
+      isPublic: data.isPublic,
+      branch: data.branch,
+      year: data.year,
+      subject: data.subject,
+      files: data.files || [],
+      authorId: data.author?._id || data.authorId,
+      likes: Array.isArray(data.likes) ? data.likes.map(like => 
+        typeof like === 'string' ? like : like._id || like.id
+      ) : [],
+      author: data.author ? {
+        id: data.author._id || data.author.id,
+        username: data.author.username,
+        email: data.author.email
+      } : undefined,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
     };
-    
-    NOTES.push(newNote);
-    localStorage.setItem("noteverse_notes", JSON.stringify(NOTES));
-    
-    setTimeout(() => {
-      resolve(newNote);
-    }, 500);
-  });
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to fetch note");
+  }
 };
 
-export const updateNote = (noteId: string, noteData: Partial<Omit<Note, "id" | "createdAt" | "authorId" | "likes">>): Promise<Note> => {
-  return new Promise((resolve, reject) => {
-    const currentUser = getCurrentUser();
-    
-    if (!currentUser) {
-      return reject(new Error("You must be logged in to update a note"));
+export const createNote = async (noteData: Partial<Note>): Promise<Note> => {
+  try {
+    // Check if user is authenticated
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("Please log in to create a note");
     }
-    
-    const noteIndex = NOTES.findIndex((n) => n.id === noteId);
-    
-    if (noteIndex === -1) {
-      return reject(new Error("Note not found"));
-    }
-    
-    const note = NOTES[noteIndex];
-    
-    if (note.authorId !== currentUser.id) {
-      return reject(new Error("You don't have permission to update this note"));
-    }
-    
-    const updatedNote: Note = {
-      ...note,
-      ...noteData,
-      updatedAt: new Date().toISOString(),
+
+    // Format files to match backend schema
+    const formattedFiles = noteData.files?.map(file => ({
+      name: file.name,
+      url: file.url, // Keep the relative URL as is
+      type: file.type,
+      size: file.size
+    })) || [];
+
+    console.log('Creating note with data:', {
+      title: noteData.title,
+      content: noteData.content,
+      isPublic: noteData.isPublic ?? true,
+      branch: noteData.branch,
+      year: noteData.year,
+      subject: noteData.subject,
+      files: formattedFiles,
+    });
+
+    const { data } = await api.post<Note>("/notes", {
+      title: noteData.title,
+      content: noteData.content,
+      isPublic: noteData.isPublic ?? true,
+      branch: noteData.branch,
+      year: noteData.year,
+      subject: noteData.subject,
+      files: formattedFiles,
+    }, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    console.log('Note created successfully:', data);
+
+    // Return the note with properly formatted data
+    return {
+      ...data,
+      id: data._id || data.id,
+      authorId: data.author?._id || data.author?.id || '',
+      files: data.files?.map(file => ({
+        ...file,
+        url: file.url // Keep the relative URL as is
+      })) || [],
     };
-    
-    NOTES[noteIndex] = updatedNote;
-    localStorage.setItem("noteverse_notes", JSON.stringify(NOTES));
-    
-    setTimeout(() => {
-      resolve(updatedNote);
-    }, 500);
-  });
+  } catch (error: any) {
+    console.error('Error creating note:', error);
+    if (error.response?.data?.errors) {
+      // Handle validation errors
+      const errorMessages = error.response.data.errors.map((err: any) => err.message).join(', ');
+      throw new Error(errorMessages);
+    }
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    throw new Error(error.message || "Failed to create note");
+  }
 };
 
-export const deleteNote = (noteId: string): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    const currentUser = getCurrentUser();
-    
-    if (!currentUser) {
-      return reject(new Error("You must be logged in to delete a note"));
-    }
-    
-    const noteIndex = NOTES.findIndex((n) => n.id === noteId);
-    
-    if (noteIndex === -1) {
-      return reject(new Error("Note not found"));
-    }
-    
-    const note = NOTES[noteIndex];
-    
-    if (note.authorId !== currentUser.id) {
-      return reject(new Error("You don't have permission to delete this note"));
-    }
-    
-    NOTES.splice(noteIndex, 1);
-    localStorage.setItem("noteverse_notes", JSON.stringify(NOTES));
-    
-    setTimeout(resolve, 500);
-  });
+export const updateNote = async (noteId: string, noteData: Partial<Note>): Promise<Note> => {
+  try {
+    const { data } = await api.put<Note>(`/notes/${noteId}`, noteData);
+    // Ensure likes is always an array and handle both string IDs and User objects
+    data.likes = (data.likes || []).map(like => 
+      typeof like === 'string' ? like : like.id
+    );
+    return {
+      ...data,
+      id: data._id || data.id,
+      authorId: data.author?._id || data.author?.id || '',
+      files: data.files?.map(file => ({
+        ...file,
+        url: file.url // Keep the relative URL as is
+      })) || [],
+    };
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to update note");
+  }
+};
+
+export const deleteNote = async (noteId: string): Promise<void> => {
+  try {
+    await api.delete(`/notes/${noteId}`);
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to delete note");
+  }
 };
 
 // New API to toggle like on a note
-export const toggleLikeNote = (noteId: string): Promise<Note> => {
-  return new Promise((resolve, reject) => {
-    const currentUser = getCurrentUser();
-    
-    if (!currentUser) {
-      return reject(new Error("You must be logged in to like a note"));
-    }
-    
-    const noteIndex = NOTES.findIndex((n) => n.id === noteId);
-    
-    if (noteIndex === -1) {
-      return reject(new Error("Note not found"));
-    }
-    
-    const note = NOTES[noteIndex];
-    
-    // Ensure note.likes is always an array
-    if (!note.likes) {
-      note.likes = [];
-    }
-    
-    const userLiked = note.likes.includes(currentUser.id);
-    
-    let updatedLikes;
-    if (userLiked) {
-      // Unlike the note
-      updatedLikes = note.likes.filter(id => id !== currentUser.id);
-    } else {
-      // Like the note
-      updatedLikes = [...note.likes, currentUser.id];
-    }
-    
-    const updatedNote: Note = {
-      ...note,
-      likes: updatedLikes,
+export const toggleLikeNote = async (noteId: string): Promise<Note> => {
+  try {
+    const { data } = await api.post<Note>(`/notes/${noteId}/like`);
+    // Ensure likes is always an array and handle both string IDs and User objects
+    const likes = (data.likes || []).map(like => 
+      typeof like === 'string' ? like : like.id
+    );
+    return {
+      ...data,
+      id: data._id || data.id,
+      authorId: data.author?._id || data.author?.id || '',
+      likes,
+      files: data.files?.map(file => ({
+        ...file,
+        url: file.url // Keep the relative URL as is
+      })) || [],
+      isPublic: data.isPublic ?? true,
+      author: data.author || null,
+      createdAt: data.createdAt || new Date().toISOString(),
+      updatedAt: data.updatedAt || new Date().toISOString(),
     };
-    
-    NOTES[noteIndex] = updatedNote;
-    localStorage.setItem("noteverse_notes", JSON.stringify(NOTES));
-    
-    setTimeout(() => {
-      resolve(updatedNote);
-    }, 500);
-  });
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to like note");
+  }
 };
 
 // New API to toggle note privacy
-export const toggleNotePrivacy = (noteId: string): Promise<Note> => {
-  return new Promise((resolve, reject) => {
-    const currentUser = getCurrentUser();
-    
-    if (!currentUser) {
-      return reject(new Error("You must be logged in to change privacy settings"));
-    }
-    
-    const noteIndex = NOTES.findIndex((n) => n.id === noteId);
-    
-    if (noteIndex === -1) {
-      return reject(new Error("Note not found"));
-    }
-    
-    const note = NOTES[noteIndex];
-    
-    if (note.authorId !== currentUser.id) {
-      return reject(new Error("You don't have permission to update this note's privacy"));
-    }
-    
-    const updatedNote: Note = {
-      ...note,
-      isPublic: !note.isPublic,
-      updatedAt: new Date().toISOString(),
+export const toggleNotePrivacy = async (noteId: string): Promise<Note> => {
+  try {
+    const { data } = await api.post<Note>(`/notes/${noteId}/privacy`);
+    // Format the response to ensure consistent data structure
+    return {
+      id: data._id || data.id,
+      title: data.title,
+      content: data.content,
+      isPublic: data.isPublic,
+      branch: data.branch,
+      year: data.year,
+      subject: data.subject,
+      files: data.files || [],
+      authorId: data.author?._id || data.authorId,
+      likes: Array.isArray(data.likes) ? data.likes.map(like => 
+        typeof like === 'string' ? like : like._id || like.id
+      ) : [],
+      author: data.author ? {
+        id: data.author._id || data.author.id,
+        username: data.author.username,
+        email: data.author.email
+      } : undefined,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
     };
-    
-    NOTES[noteIndex] = updatedNote;
-    localStorage.setItem("noteverse_notes", JSON.stringify(NOTES));
-    
-    setTimeout(() => {
-      resolve(updatedNote);
-    }, 500);
-  });
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to toggle note privacy");
+  }
 };
 
 // New API to get user profile info with their notes
@@ -458,25 +438,63 @@ export const getYears = (): Promise<Year[]> => {
 };
 
 // File APIs - In a real app, this would handle file uploads to a server
-export const uploadFile = (file: File): Promise<NoteFile> => {
-  return new Promise((resolve) => {
-    // Simulate file upload
-    const reader = new FileReader();
-    
-    reader.onload = () => {
-      const newFile: NoteFile = {
-        id: `file${Math.random().toString(36).substring(2, 9)}`,
-        name: file.name,
-        url: URL.createObjectURL(file), // In a real app, this would be a server URL
-        type: file.type,
-        size: file.size,
-      };
-      
-      setTimeout(() => {
-        resolve(newFile);
-      }, 1000);
+export const uploadFile = async (file: File, onProgress?: (progress: number) => void): Promise<NoteFile> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    console.log('Uploading file:', {
+      name: file.name,
+      type: file.type,
+      size: file.size
+    });
+
+    const { data } = await api.post<{
+      id: string;
+      name: string;
+      url: string;
+      type: string;
+      size: number;
+    }>('/files/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const progress = (progressEvent.loaded / progressEvent.total) * 100;
+          onProgress(progress);
+        }
+      },
+    } as any);
+
+    console.log('File upload response:', data);
+
+    // Return the file data with the correct URL format
+    return {
+      id: data.id,
+      name: data.name,
+      url: data.url, // Keep the relative URL as is
+      type: data.type,
+      size: data.size,
     };
-    
-    reader.readAsDataURL(file);
+  } catch (error: any) {
+    console.error('File upload error:', error);
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    throw new Error('Failed to upload file');
+  }
+};
+
+export const deleteFile = async (filename: string): Promise<void> => {
+  const response = await fetch(`${API_URL}/files/${filename}`, {
+    method: 'DELETE',
   });
+
+  if (!response.ok) {
+    throw new Error('Failed to delete file');
+  }
 };

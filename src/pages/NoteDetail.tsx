@@ -22,6 +22,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, FileText, Pencil, Trash2, User, Calendar, Eye, Lock, Loader, Download, Heart } from "lucide-react";
 import { format } from "date-fns";
+import { API_URL } from "@/services/api";
 
 const NoteDetail = () => {
   const { noteId } = useParams<{ noteId: string }>();
@@ -32,33 +33,47 @@ const NoteDetail = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  const isOwner = user && note && user.id === note.authorId;
+  const isOwner = user && note && (user.id === note.authorId);
   
   const likes = note?.likes || [];
-  const isLiked = user && note ? likes.includes(user.id) : false;
+  const isLiked = user && note ? likes.some(like => {
+    if (typeof like === 'string') {
+      return like === user.id;
+    }
+    return like && (like.id || like._id) === user.id;
+  }) : false;
 
   useEffect(() => {
     const fetchNote = async () => {
-      if (!noteId) return;
+      if (!noteId) {
+        toast({
+          title: "Error",
+          description: "Invalid note ID",
+          variant: "destructive",
+        });
+        navigate("/explore");
+        return;
+      }
       
       setIsLoading(true);
       try {
         const noteData = await getNoteById(noteId);
         setNote(noteData);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching note:", error);
         toast({
           title: "Error",
-          description: "Failed to load note",
+          description: error.message || "Failed to load note",
           variant: "destructive",
         });
+        navigate("/explore");
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchNote();
-  }, [noteId, toast]);
+  }, [noteId, toast, navigate]);
 
   const handleDelete = async () => {
     if (!noteId) return;
@@ -292,7 +307,12 @@ const NoteDetail = () => {
                       </p>
                     </div>
                   </div>
-                  <a href={file.url} download={file.name} target="_blank" rel="noopener noreferrer">
+                  <a 
+                    href={`${API_URL}/files/download/${file.url.split('/').pop()}`} 
+                    download={file.name} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
                     <Button size="sm" className="gap-1">
                       <Download className="h-4 w-4" />
                       Download

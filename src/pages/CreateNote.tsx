@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -13,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Save, Loader } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const CreateNote = () => {
   const [title, setTitle] = useState("");
@@ -28,8 +28,19 @@ const CreateNote = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to create a note",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
     const fetchData = async () => {
       setIsLoading(true);
       try {
@@ -53,12 +64,22 @@ const CreateNote = () => {
     };
 
     fetchData();
-  }, [toast]);
+  }, [toast, navigate, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title || !content || !branch || !year) {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to create a note",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+    
+    if (!title || !content || !branch || !year || !subject) {
       toast({
         title: "Missing fields",
         description: "Please fill in all required fields",
@@ -70,15 +91,40 @@ const CreateNote = () => {
     setIsSubmitting(true);
     
     try {
-      await createNote({
+      // Get the branch and year values from the selected options
+      const selectedBranch = branches.find(b => b.id === branch);
+      const selectedYear = years.find(y => y.id === year);
+
+      if (!selectedBranch || !selectedYear) {
+        throw new Error("Invalid branch or year selected");
+      }
+
+      // Validate files before submission
+      if (files.some(file => !file.url || !file.name || !file.type)) {
+        throw new Error("Some files are not properly uploaded");
+      }
+
+      console.log('Submitting note with data:', {
         title,
         content,
-        branch,
-        year,
+        branch: selectedBranch.id,
+        year: selectedYear.id,
         subject,
         isPublic,
         files,
       });
+
+      const result = await createNote({
+        title,
+        content,
+        branch: selectedBranch.id,
+        year: selectedYear.id,
+        subject,
+        isPublic,
+        files,
+      });
+
+      console.log('Note created successfully:', result);
       
       toast({
         title: "Success",
@@ -86,11 +132,11 @@ const CreateNote = () => {
       });
       
       navigate("/my-notes");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating note:", error);
       toast({
         title: "Error",
-        description: "Failed to create note",
+        description: error.message || "Failed to create note",
         variant: "destructive",
       });
     } finally {

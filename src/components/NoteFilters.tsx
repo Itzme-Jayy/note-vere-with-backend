@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Filter, Branch, Year } from "@/types";
 import { getBranches, getYears } from "@/services/api";
@@ -58,11 +57,9 @@ const NoteFilters: React.FC<NoteFiltersProps> = ({ filter, setFilter }) => {
   };
 
   return (
-    <div className="space-y-4 bg-muted/30 p-4 rounded-lg">
-      <h3 className="text-lg font-medium mb-4">Filter Notes</h3>
-      
-      <form onSubmit={handleSearch} className="space-y-4">
-        <div className="relative">
+    <div className="bg-muted/30 p-4 rounded-lg">
+      <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 items-end">
+        <div className="flex-1 relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
@@ -73,51 +70,49 @@ const NoteFilters: React.FC<NoteFiltersProps> = ({ filter, setFilter }) => {
           />
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="branch">Branch</Label>
-            <Select
-              value={filter.branch || "all"}
-              onValueChange={handleBranchChange}
-              disabled={isLoading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select branch" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Branches</SelectItem>
-                {branches.map((branch) => (
-                  <SelectItem key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="year">Year</Label>
-            <Select
-              value={filter.year || "all"}
-              onValueChange={handleYearChange}
-              disabled={isLoading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select year" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Years</SelectItem>
-                {years.map((year) => (
-                  <SelectItem key={year.id} value={year.id}>
-                    {year.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="flex-1">
+          <Label htmlFor="branch">Branch</Label>
+          <Select
+            value={filter.branch || "all"}
+            onValueChange={handleBranchChange}
+            disabled={isLoading}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select branch" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Branches</SelectItem>
+              {branches.map((branch) => (
+                <SelectItem key={branch.id} value={branch.id}>
+                  {branch.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex-1">
+          <Label htmlFor="year">Year</Label>
+          <Select
+            value={filter.year || "all"}
+            onValueChange={handleYearChange}
+            disabled={isLoading}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select year" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Years</SelectItem>
+              {years.map((year) => (
+                <SelectItem key={year.id} value={year.id}>
+                  {year.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex gap-2">
           <Button type="button" variant="outline" size="sm" onClick={handleReset}>
             <X className="mr-2 h-4 w-4" />
             Reset

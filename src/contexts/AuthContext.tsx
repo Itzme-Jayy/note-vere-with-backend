@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User } from "../types";
 import { getCurrentUser, login, logout, register } from "../services/api";
@@ -19,30 +18,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  // Initialize user state from localStorage
   useEffect(() => {
-    const initAuth = async () => {
+    const initializeUser = async () => {
       try {
         const currentUser = getCurrentUser();
-        setUser(currentUser);
+        if (currentUser) {
+          setUser(currentUser);
+        }
       } catch (error) {
-        console.error("Auth initialization error:", error);
+        console.error('Error initializing user:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    initAuth();
+    initializeUser();
   }, []);
 
-  const handleLogin = async (email: string, password: string) => {
+  const handleLogin = async (email: string, password: string): Promise<void> => {
     try {
       setIsLoading(true);
-      const user = await login(email, password);
-      setUser(user);
-      toast({
-        title: "Welcome back!",
-        description: "You have successfully logged in.",
-      });
+      const response = await login(email, password);
+      if (response) {
+        setUser(response);
+        toast({
+          title: "Welcome back!",
+          description: "You have successfully logged in.",
+        });
+      }
     } catch (error) {
       toast({
         title: "Login failed",
@@ -55,15 +59,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const handleRegister = async (username: string, email: string, password: string) => {
+  const handleRegister = async (username: string, email: string, password: string): Promise<void> => {
     try {
       setIsLoading(true);
-      const user = await register(username, email, password);
-      setUser(user);
-      toast({
-        title: "Account created!",
-        description: "You have successfully registered and logged in.",
-      });
+      const response = await register(username, email, password);
+      if (response) {
+        setUser(response);
+        toast({
+          title: "Account created!",
+          description: "You have successfully registered and logged in.",
+        });
+      }
     } catch (error) {
       toast({
         title: "Registration failed",
