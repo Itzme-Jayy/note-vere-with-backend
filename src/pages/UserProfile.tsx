@@ -60,8 +60,14 @@ const UserProfile = () => {
   }, [searchTerm, notes]);
   
   const handleNoteUpdated = (updatedNote: Note) => {
+    // Make sure note.likes is initialized as an empty array if undefined
+    const safeUpdatedNote = {
+      ...updatedNote,
+      likes: updatedNote.likes || []
+    };
+    
     setNotes(prevNotes => 
-      prevNotes.map(note => note.id === updatedNote.id ? updatedNote : note)
+      prevNotes.map(note => note.id === updatedNote.id ? safeUpdatedNote : note)
     );
   };
   

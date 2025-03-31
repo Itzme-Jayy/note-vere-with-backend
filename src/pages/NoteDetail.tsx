@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -34,7 +33,9 @@ const NoteDetail = () => {
   const navigate = useNavigate();
   
   const isOwner = user && note && user.id === note.authorId;
-  const isLiked = user && note ? note.likes.includes(user.id) : false;
+  
+  const likes = note?.likes || [];
+  const isLiked = user && note ? likes.includes(user.id) : false;
 
   useEffect(() => {
     const fetchNote = async () => {
@@ -199,7 +200,7 @@ const NoteDetail = () => {
               disabled={!user}
             >
               <Heart className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-              <span>{note.likes.length} {note.likes.length === 1 ? 'Like' : 'Likes'}</span>
+              <span>{likes.length} {likes.length === 1 ? 'Like' : 'Likes'}</span>
             </Button>
             
             {isOwner && (

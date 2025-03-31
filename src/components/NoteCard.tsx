@@ -19,7 +19,12 @@ interface NoteCardProps {
 const NoteCard: React.FC<NoteCardProps> = ({ note, onNoteUpdated }) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const isLiked = user ? note.likes.includes(user.id) : false;
+  
+  // Safety check - ensure note.likes is always an array
+  const likes = note.likes || [];
+  
+  // Only check if liked when user exists
+  const isLiked = user ? likes.includes(user.id) : false;
   
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigation
@@ -89,7 +94,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onNoteUpdated }) => {
                 <Heart 
                   className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} 
                 />
-                <span className="ml-1">{note.likes.length}</span>
+                <span className="ml-1">{likes.length}</span>
               </Button>
               <span>{formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true })}</span>
             </div>
