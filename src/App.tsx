@@ -15,6 +15,7 @@ import EditNote from "./pages/EditNote";
 import NoteDetail from "./pages/NoteDetail";
 import UserProfile from "./pages/UserProfile";
 import NotFound from "./pages/NotFound";
+import LikedNotes from "./pages/LikedNotes";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => {
               <Route path="/explore" element={<Explore />} />
               <Route path="/note/:noteId" element={<NoteDetail />} />
               <Route path="/user/:userId" element={<UserProfile />} />
+              <Route path="/liked-notes" element={<LikedNotes />} />
               
               {/* Protected Routes */}
               <Route path="/" element={

@@ -10,7 +10,6 @@ import { FileText, Eye, Lock, Heart } from "lucide-react";
 import { toggleLike } from "@/services/api";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
-import { FaHeart, FaEdit, FaTrash } from "react-icons/fa";
 
 interface NoteCardProps {
   note: Note;
@@ -25,18 +24,25 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onNoteUpdated, onDelete, onEd
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
   const currentUser = user;
 
   useEffect(() => {
-    // Set initial like state and count
+    // Check if current user has liked the note
     if (note.likes) {
-      setLikeCount(note.likes.length);
-      setIsLiked(currentUser ? note.likes.includes(currentUser.id) : false);
+      const hasLiked = note.likes.some(like => {
+        if (typeof like === 'string') {
+          return like === currentUser?.id || like === currentUser?._id;
+        }
+        return like && (like.id || like._id) === (currentUser?.id || currentUser?._id);
+      });
+      setIsLiked(hasLiked);
     }
   }, [note.likes, currentUser]);
 
-  const handleLike = async () => {
+  const handleLike = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigation
+    e.stopPropagation(); // Stop event propagation
+    
     try {
       if (!currentUser) {
         toast({
@@ -49,33 +55,13 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onNoteUpdated, onDelete, onEd
 
       const updatedNote = await onLike?.(note.id) || await toggleLike(note._id || note.id);
       setIsLiked(!isLiked);
-      setLikeCount(updatedNote.likes.length);
       toast({
         title: "Success",
         description: isLiked ? "Note unliked" : "Note liked"
       });
 
-      // Format the updated note to ensure consistent data structure
-      const formattedNote = {
-        ...updatedNote,
-        id: updatedNote._id || updatedNote.id,
-        authorId: updatedNote.author?._id || updatedNote.authorId,
-        likes: Array.isArray(updatedNote.likes) ? updatedNote.likes.map(like => 
-          typeof like === 'string' ? like : like._id || like.id
-        ) : [],
-        files: updatedNote.files || [],
-        isPublic: updatedNote.isPublic,
-        author: updatedNote.author ? {
-          id: updatedNote.author._id || updatedNote.author.id,
-          username: updatedNote.author.username,
-          email: updatedNote.author.email
-        } : undefined,
-        createdAt: updatedNote.createdAt,
-        updatedAt: updatedNote.updatedAt
-      };
-
       if (onNoteUpdated) {
-        onNoteUpdated(formattedNote);
+        onNoteUpdated(updatedNote);
       }
     } catch (error) {
       console.error('Error toggling like:', error);
@@ -137,7 +123,6 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onNoteUpdated, onDelete, onEd
                 <Heart 
                   className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} 
                 />
-                <span className="ml-1">{likeCount}</span>
               </Button>
               <span>{formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true })}</span>
             </div>

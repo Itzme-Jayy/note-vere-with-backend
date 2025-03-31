@@ -1,9 +1,8 @@
-
 import React from "react";
 import { Link, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Home, BookOpen, FileText, LogOut, User } from "lucide-react";
+import { Home, BookOpen, FileText, LogOut, User, Heart } from "lucide-react";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -99,6 +98,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     >
                       <FileText className="h-5 w-5" />
                       <span>My Notes</span>
+                    </Link>
+                  </li>
+                  <li>
+                    <Link 
+                      to="/liked-notes" 
+                      className={`flex items-center gap-3 px-4 py-2 rounded-md hover:bg-accent transition-colors ${isActive("/liked-notes")}`}
+                    >
+                      <Heart className="h-5 w-5" />
+                      <span>Liked Notes</span>
                     </Link>
                   </li>
                   <li className="pt-2">
