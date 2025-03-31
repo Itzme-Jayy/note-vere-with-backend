@@ -1,4 +1,4 @@
-# NoteVerse Exchange
+# Note-Vere with Backend
 
 A platform for sharing and managing educational notes among students.
 
@@ -29,8 +29,8 @@ A platform for sharing and managing educational notes among students.
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/noteverse-exchange.git
-cd noteverse-exchange
+git clone https://github.com/Itzme-Jayy/note-vere-with-backend.git
+cd note-vere-with-backend
 ```
 
 2. Install dependencies:
@@ -61,6 +61,14 @@ npm run dev
 cd frontend
 npm run dev
 ```
+
+## Quick Start
+
+1. Fork the repo
+2. Clone your forked repository
+3. Install dependencies for both frontend and backend
+4. Set up environment variables
+5. Start both servers
 
 ## Contributing
 
