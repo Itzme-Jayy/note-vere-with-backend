@@ -3,11 +3,12 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Note } from "@/types";
-import { getNoteById, deleteNote } from "@/services/api";
+import { getNoteById, deleteNote, toggleLikeNote, toggleNotePrivacy } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +21,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft, FileText, Pencil, Trash2, User, Calendar, Eye, Lock, Loader, Download } from "lucide-react";
+import { ArrowLeft, FileText, Pencil, Trash2, User, Calendar, Eye, Lock, Loader, Download, Heart } from "lucide-react";
 import { format } from "date-fns";
 
 const NoteDetail = () => {
@@ -31,6 +32,9 @@ const NoteDetail = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  const isOwner = user && note && user.id === note.authorId;
+  const isLiked = user && note ? note.likes.includes(user.id) : false;
 
   useEffect(() => {
     const fetchNote = async () => {
@@ -77,8 +81,46 @@ const NoteDetail = () => {
       setIsDeleting(false);
     }
   };
-
-  const isOwner = user && note && user.id === note.authorId;
+  
+  const handleToggleLike = async () => {
+    if (!noteId || !user) return;
+    
+    try {
+      const updatedNote = await toggleLikeNote(noteId);
+      setNote(updatedNote);
+      toast({
+        title: isLiked ? "Note unliked" : "Note liked",
+        description: isLiked ? "You've removed your like" : "You've liked this note",
+      });
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      toast({
+        title: "Error",
+        description: "Failed to like/unlike note",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleTogglePrivacy = async () => {
+    if (!noteId || !isOwner) return;
+    
+    try {
+      const updatedNote = await toggleNotePrivacy(noteId);
+      setNote(updatedNote);
+      toast({
+        title: "Privacy updated",
+        description: updatedNote.isPublic ? "Note is now public" : "Note is now private",
+      });
+    } catch (error) {
+      console.error("Error toggling privacy:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update note privacy",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -148,48 +190,72 @@ const NoteDetail = () => {
             </div>
           </div>
 
-          {isOwner && (
-            <div className="flex gap-2">
-              <Link to={`/edit-note/${note.id}`}>
-                <Button variant="outline" size="sm" className="gap-1">
-                  <Pencil className="h-4 w-4" />
-                  Edit
-                </Button>
-              </Link>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm" className="gap-1">
-                    <Trash2 className="h-4 w-4" />
-                    Delete
+          <div className="flex gap-2 items-center">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="gap-1"
+              onClick={handleToggleLike}
+              disabled={!user}
+            >
+              <Heart className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+              <span>{note.likes.length} {note.likes.length === 1 ? 'Like' : 'Likes'}</span>
+            </Button>
+            
+            {isOwner && (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">{note.isPublic ? 'Public' : 'Private'}</span>
+                  <Switch 
+                    checked={note.isPublic} 
+                    onCheckedChange={handleTogglePrivacy}
+                  />
+                </div>
+                
+                <Link to={`/edit-note/${note.id}`}>
+                  <Button variant="outline" size="sm" className="gap-1">
+                    <Pencil className="h-4 w-4" />
+                    Edit
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete your note and remove it from our servers.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={handleDelete}
-                      disabled={isDeleting}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      {isDeleting ? "Deleting..." : "Delete"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          )}
+                </Link>
+                
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" className="gap-1">
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete your note and remove it from our servers.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {isDeleting ? "Deleting..." : "Delete"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row text-sm text-muted-foreground gap-4 sm:gap-8">
           <div className="flex items-center gap-1">
             <User className="h-4 w-4" />
-            <span>By {note.author?.username || "Unknown"}</span>
+            <Link to={`/user/${note.authorId}`} className="hover:underline">
+              By {note.author?.username || "Unknown"}
+            </Link>
           </div>
           <div className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
@@ -225,7 +291,7 @@ const NoteDetail = () => {
                     </div>
                   </div>
                   <a href={file.url} download={file.name} target="_blank" rel="noopener noreferrer">
-                    <Button size="sm" variant="ghost" className="gap-1">
+                    <Button size="sm" className="gap-1">
                       <Download className="h-4 w-4" />
                       Download
                     </Button>

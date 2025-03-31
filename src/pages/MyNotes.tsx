@@ -55,6 +55,12 @@ const MyNotes = () => {
     e.preventDefault();
     // Search is already handled by the useEffect
   };
+  
+  const handleNoteUpdated = (updatedNote: Note) => {
+    setNotes(prevNotes => 
+      prevNotes.map(note => note.id === updatedNote.id ? updatedNote : note)
+    );
+  };
 
   return (
     <Layout>
@@ -107,7 +113,11 @@ const MyNotes = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredNotes.map((note) => (
-              <NoteCard key={note.id} note={note} />
+              <NoteCard 
+                key={note.id} 
+                note={note} 
+                onNoteUpdated={handleNoteUpdated}
+              />
             ))}
           </div>
         )}

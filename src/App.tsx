@@ -14,6 +14,7 @@ import MyNotes from "./pages/MyNotes";
 import CreateNote from "./pages/CreateNote";
 import EditNote from "./pages/EditNote";
 import NoteDetail from "./pages/NoteDetail";
+import UserProfile from "./pages/UserProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/create-note" element={<CreateNote />} />
             <Route path="/edit-note/:noteId" element={<EditNote />} />
             <Route path="/note/:noteId" element={<NoteDetail />} />
+            <Route path="/user/:userId" element={<UserProfile />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

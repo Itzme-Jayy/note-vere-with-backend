@@ -18,6 +18,7 @@ export interface Note {
   files: NoteFile[];
   authorId: string;
   author?: User;
+  likes: string[]; // Array of user IDs who liked the note
 }
 
 export interface NoteFile {
@@ -43,4 +44,5 @@ export interface Filter {
   year?: string;
   subject?: string;
   search?: string;
+  author?: string;
 }

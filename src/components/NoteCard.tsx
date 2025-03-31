@@ -2,16 +2,51 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Note } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Eye, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { FileText, Eye, Lock, Heart } from "lucide-react";
+import { toggleLikeNote } from "@/services/api";
+import { useToast } from "@/components/ui/use-toast";
 
 interface NoteCardProps {
   note: Note;
+  onNoteUpdated?: (updatedNote: Note) => void;
 }
 
-const NoteCard: React.FC<NoteCardProps> = ({ note }) => {
+const NoteCard: React.FC<NoteCardProps> = ({ note, onNoteUpdated }) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const isLiked = user ? note.likes.includes(user.id) : false;
+  
+  const handleLike = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigation
+    e.stopPropagation(); // Stop event propagation
+    
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to like notes",
+      });
+      return;
+    }
+    
+    try {
+      const updatedNote = await toggleLikeNote(note.id);
+      if (onNoteUpdated) {
+        onNoteUpdated(updatedNote);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to like note",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Link to={`/note/${note.id}`}>
       <Card className="note-card h-full flex flex-col transition-all hover:shadow-md">
@@ -44,7 +79,20 @@ const NoteCard: React.FC<NoteCardProps> = ({ note }) => {
         <CardFooter className="pt-2 text-xs text-muted-foreground border-t">
           <div className="w-full flex justify-between items-center">
             <span>By {note.author?.username || 'Unknown'}</span>
-            <span>{formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true })}</span>
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-auto p-0 hover:bg-transparent"
+                onClick={handleLike}
+              >
+                <Heart 
+                  className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} 
+                />
+                <span className="ml-1">{note.likes.length}</span>
+              </Button>
+              <span>{formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true })}</span>
+            </div>
           </div>
         </CardFooter>
       </Card>

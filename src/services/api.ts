@@ -45,6 +45,7 @@ let NOTES: Note[] = [
       },
     ],
     authorId: "user1",
+    likes: [],
   },
   {
     id: "note2",
@@ -58,6 +59,7 @@ let NOTES: Note[] = [
     subject: "Electric Circuits",
     files: [],
     authorId: "user2",
+    likes: [],
   },
   {
     id: "note3",
@@ -79,6 +81,7 @@ let NOTES: Note[] = [
       },
     ],
     authorId: "user1",
+    likes: [],
   },
   {
     id: "note4",
@@ -92,6 +95,7 @@ let NOTES: Note[] = [
     subject: "DBMS",
     files: [],
     authorId: "user1",
+    likes: [],
   },
 ];
 
@@ -193,6 +197,10 @@ export const getNotes = (filter: Filter = {}): Promise<Note[]> => {
       );
     }
     
+    if (filter.author) {
+      filteredNotes = filteredNotes.filter((note) => note.authorId === filter.author);
+    }
+    
     // Add author info
     filteredNotes = filteredNotes.map((note) => ({
       ...note,
@@ -246,7 +254,7 @@ export const getNoteById = (noteId: string): Promise<Note | null> => {
   });
 };
 
-export const createNote = (noteData: Omit<Note, "id" | "createdAt" | "updatedAt" | "authorId">): Promise<Note> => {
+export const createNote = (noteData: Omit<Note, "id" | "createdAt" | "updatedAt" | "authorId" | "likes">): Promise<Note> => {
   return new Promise((resolve, reject) => {
     const currentUser = getCurrentUser();
     
@@ -260,6 +268,7 @@ export const createNote = (noteData: Omit<Note, "id" | "createdAt" | "updatedAt"
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       authorId: currentUser.id,
+      likes: [],
     };
     
     NOTES.push(newNote);
@@ -271,7 +280,7 @@ export const createNote = (noteData: Omit<Note, "id" | "createdAt" | "updatedAt"
   });
 };
 
-export const updateNote = (noteId: string, noteData: Partial<Omit<Note, "id" | "createdAt" | "authorId">>): Promise<Note> => {
+export const updateNote = (noteId: string, noteData: Partial<Omit<Note, "id" | "createdAt" | "authorId" | "likes">>): Promise<Note> => {
   return new Promise((resolve, reject) => {
     const currentUser = getCurrentUser();
     
@@ -330,6 +339,98 @@ export const deleteNote = (noteId: string): Promise<void> => {
     localStorage.setItem("noteverse_notes", JSON.stringify(NOTES));
     
     setTimeout(resolve, 500);
+  });
+};
+
+// New API to toggle like on a note
+export const toggleLikeNote = (noteId: string): Promise<Note> => {
+  return new Promise((resolve, reject) => {
+    const currentUser = getCurrentUser();
+    
+    if (!currentUser) {
+      return reject(new Error("You must be logged in to like a note"));
+    }
+    
+    const noteIndex = NOTES.findIndex((n) => n.id === noteId);
+    
+    if (noteIndex === -1) {
+      return reject(new Error("Note not found"));
+    }
+    
+    const note = NOTES[noteIndex];
+    const userLiked = note.likes.includes(currentUser.id);
+    
+    let updatedLikes;
+    if (userLiked) {
+      // Unlike the note
+      updatedLikes = note.likes.filter(id => id !== currentUser.id);
+    } else {
+      // Like the note
+      updatedLikes = [...note.likes, currentUser.id];
+    }
+    
+    const updatedNote: Note = {
+      ...note,
+      likes: updatedLikes,
+    };
+    
+    NOTES[noteIndex] = updatedNote;
+    localStorage.setItem("noteverse_notes", JSON.stringify(NOTES));
+    
+    setTimeout(() => {
+      resolve(updatedNote);
+    }, 500);
+  });
+};
+
+// New API to toggle note privacy
+export const toggleNotePrivacy = (noteId: string): Promise<Note> => {
+  return new Promise((resolve, reject) => {
+    const currentUser = getCurrentUser();
+    
+    if (!currentUser) {
+      return reject(new Error("You must be logged in to change privacy settings"));
+    }
+    
+    const noteIndex = NOTES.findIndex((n) => n.id === noteId);
+    
+    if (noteIndex === -1) {
+      return reject(new Error("Note not found"));
+    }
+    
+    const note = NOTES[noteIndex];
+    
+    if (note.authorId !== currentUser.id) {
+      return reject(new Error("You don't have permission to update this note's privacy"));
+    }
+    
+    const updatedNote: Note = {
+      ...note,
+      isPublic: !note.isPublic,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    NOTES[noteIndex] = updatedNote;
+    localStorage.setItem("noteverse_notes", JSON.stringify(NOTES));
+    
+    setTimeout(() => {
+      resolve(updatedNote);
+    }, 500);
+  });
+};
+
+// New API to get user profile info with their notes
+export const getUserProfile = (userId: string): Promise<{user: User, notes: Note[]}> => {
+  return new Promise((resolve, reject) => {
+    const user = USERS.find(u => u.id === userId);
+    
+    if (!user) {
+      return reject(new Error("User not found"));
+    }
+    
+    getNotes({ author: userId }).then(notes => {
+      resolve({ user, notes });
+    });
   });
 };
 
