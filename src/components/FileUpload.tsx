@@ -80,7 +80,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ files, setFiles }) => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsUploading(false);
       setUploadProgress(0);
       // Reset the file input
       if (fileInputRef.current) {
