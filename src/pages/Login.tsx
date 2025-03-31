@@ -31,12 +31,6 @@ const Login = () => {
     }
   };
 
-  // For demo purposes - prefill with sample credentials
-  const fillDemoCredentials = () => {
-    setEmail("john@example.com");
-    setPassword("password");
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <div className="max-w-md w-full">
@@ -100,16 +94,6 @@ const Login = () => {
                   "Login"
                 )}
               </Button>
-              
-              <div className="text-center text-sm text-muted-foreground">
-                <button 
-                  type="button" 
-                  className="text-primary hover:underline"
-                  onClick={fillDemoCredentials}
-                >
-                  Use demo credentials
-                </button>
-              </div>
             </form>
           </CardContent>
           <CardFooter className="flex flex-col">
