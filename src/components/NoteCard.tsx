@@ -86,6 +86,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onNoteUpdated }) => {
             <span>By {note.author?.username || 'Unknown'}</span>
             <div className="flex items-center gap-4">
               <Button 
+                type="button"
                 variant="ghost" 
                 size="sm" 
                 className="h-auto p-0 hover:bg-transparent"

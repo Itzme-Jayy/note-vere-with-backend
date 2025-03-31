@@ -80,7 +80,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ files, setFiles }) => {
         variant: "destructive",
       });
     } finally {
-      setIsUploading(false);
+      setIsLoading(false);
       setUploadProgress(0);
       // Reset the file input
       if (fileInputRef.current) {
@@ -91,6 +91,15 @@ const FileUpload: React.FC<FileUploadProps> = ({ files, setFiles }) => {
 
   const handleRemoveFile = (fileId: string) => {
     setFiles(prevFiles => prevFiles.filter(file => file.id !== fileId));
+  };
+
+  const handleSelectFilesClick = (e: React.MouseEvent) => {
+    // Prevent the event from bubbling up to any parent form elements
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Trigger the file input click
+    fileInputRef.current?.click();
   };
 
   return (
@@ -111,8 +120,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ files, setFiles }) => {
           disabled={isUploading}
         />
         <Button
+          type="button"
           variant="outline"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={handleSelectFilesClick}
           disabled={isUploading}
         >
           Select Files
@@ -140,6 +150,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ files, setFiles }) => {
                   <span className="text-sm">{file.name}</span>
                 </div>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
                   className="h-6 w-6 p-0"

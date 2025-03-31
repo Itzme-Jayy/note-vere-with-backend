@@ -358,6 +358,12 @@ export const toggleLikeNote = (noteId: string): Promise<Note> => {
     }
     
     const note = NOTES[noteIndex];
+    
+    // Ensure note.likes is always an array
+    if (!note.likes) {
+      note.likes = [];
+    }
+    
     const userLiked = note.likes.includes(currentUser.id);
     
     let updatedLikes;

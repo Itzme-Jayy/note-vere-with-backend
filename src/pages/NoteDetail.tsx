@@ -193,6 +193,7 @@ const NoteDetail = () => {
 
           <div className="flex gap-2 items-center">
             <Button 
+              type="button"
               variant="ghost" 
               size="sm" 
               className="gap-1"
