@@ -25,8 +25,16 @@ const MyNotes = () => {
         console.log('Fetching notes for user:', user.id);
         const userNotes = await getUserNotes(user.id);
         console.log('Fetched notes:', userNotes);
-        setNotes(userNotes);
-        setFilteredNotes(userNotes);
+        
+        // Ensure we have all notes, both public and private
+        const formattedNotes = userNotes.map(note => ({
+          ...note,
+          id: note._id || note.id,
+          isPublic: note.isPublic !== undefined ? note.isPublic : true,
+        }));
+        
+        setNotes(formattedNotes);
+        setFilteredNotes(formattedNotes);
       } catch (error) {
         console.error("Error fetching notes:", error);
       } finally {
@@ -67,7 +75,7 @@ const MyNotes = () => {
         typeof like === 'string' ? like : like._id || like.id
       ) : [],
       files: updatedNote.files || [],
-      isPublic: updatedNote.isPublic,
+      isPublic: updatedNote.isPublic !== undefined ? updatedNote.isPublic : true,
       author: updatedNote.author ? {
         id: updatedNote.author._id || updatedNote.author.id,
         username: updatedNote.author.username,

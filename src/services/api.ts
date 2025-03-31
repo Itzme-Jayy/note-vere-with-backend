@@ -226,12 +226,12 @@ export const createNote = async (noteData: Partial<Note>): Promise<Note> => {
     const notePayload = {
       title: noteData.title,
       content: noteData.content,
-      isPublic: noteData.isPublic ?? true,
+      isPublic: noteData.isPublic !== undefined ? noteData.isPublic : true,
       branch: noteData.branch,
       year: noteData.year,
       subject: noteData.subject,
       files: formattedFiles,
-      author: currentUser.id // Explicitly set the author ID
+      author: currentUser.id
     };
 
     console.log('Creating note with data:', notePayload);
