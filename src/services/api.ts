@@ -306,29 +306,25 @@ export const deleteNote = async (noteId: string): Promise<void> => {
 // New API to toggle like on a note
 export const toggleLike = async (noteId: string): Promise<Note> => {
   try {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem('token');
     if (!token) {
-      throw new Error("Please log in to like notes");
+      throw new Error('Authentication required');
     }
 
-    const { data } = await api.post<{ message: string; note: Note }>(
-      `/notes/${noteId}/like`,
+    const response = await axios.post(
+      `${API_URL}/notes/${noteId}/like`,
       {},
       {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       }
     );
 
-    // Return the updated note
-    return data.note;
-  } catch (error: any) {
+    return response.data.note;
+  } catch (error) {
     console.error('Error toggling like:', error);
-    if (error.response?.data?.message) {
-      throw new Error(error.response.data.message);
-    }
-    throw new Error(error.message || "Failed to toggle like");
+    throw error;
   }
 };
 

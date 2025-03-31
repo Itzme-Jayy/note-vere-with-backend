@@ -10,24 +10,24 @@ import { FileText, Eye, Lock, Heart } from "lucide-react";
 import { toggleLike } from "@/services/api";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 
 interface NoteCardProps {
   note: Note;
   onNoteUpdated?: (updatedNote: Note) => void;
   onDelete?: (id: string) => void;
   onEdit?: (note: Note) => void;
-  onLike?: (id: string) => Promise<Note>;
 }
 
-const NoteCard: React.FC<NoteCardProps> = ({ note, onNoteUpdated, onDelete, onEdit, onLike }) => {
+const NoteCard: React.FC<NoteCardProps> = ({ note, onNoteUpdated, onDelete, onEdit }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [isLiked, setIsLiked] = useState(false);
   const currentUser = user;
 
   useEffect(() => {
-    // Check if current user has liked the note
     if (note.likes) {
       const hasLiked = note.likes.some(like => {
         if (typeof like === 'string') {
@@ -39,9 +39,57 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onNoteUpdated, onDelete, onEd
     }
   }, [note.likes, currentUser]);
 
+  const toggleLikeMutation = useMutation({
+    mutationFn: toggleLike,
+    onMutate: async (noteId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['notes'] });
+
+      // Snapshot the previous value
+      const previousNotes = queryClient.getQueryData(['notes']);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(['notes'], (old: Note[] | undefined) => {
+        if (!old) return old;
+        return old.map(n => {
+          if (n.id === noteId) {
+            const newLikes = isLiked 
+              ? n.likes.filter(like => {
+                  if (typeof like === 'string') {
+                    return like !== currentUser?.id && like !== currentUser?._id;
+                  }
+                  return like && (like.id || like._id) !== (currentUser?.id || currentUser?._id);
+                })
+              : [...n.likes, currentUser?.id || currentUser?._id];
+            return { ...n, likes: newLikes };
+          }
+          return n;
+        });
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousNotes };
+    },
+    onError: (err, newNote, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousNotes) {
+        queryClient.setQueryData(['notes'], context.previousNotes);
+      }
+      toast({
+        title: "Error",
+        description: "Failed to update like status",
+        variant: "destructive"
+      });
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure cache is in sync
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+    },
+  });
+
   const handleLike = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigation
-    e.stopPropagation(); // Stop event propagation
+    e.preventDefault();
+    e.stopPropagation();
     
     try {
       if (!currentUser) {
@@ -53,7 +101,8 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onNoteUpdated, onDelete, onEd
         return;
       }
 
-      const updatedNote = await onLike?.(note.id) || await toggleLike(note._id || note.id);
+      const noteId = note._id || note.id;
+      await toggleLikeMutation.mutateAsync(noteId);
       setIsLiked(!isLiked);
       toast({
         title: "Success",
@@ -61,15 +110,10 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onNoteUpdated, onDelete, onEd
       });
 
       if (onNoteUpdated) {
-        onNoteUpdated(updatedNote);
+        onNoteUpdated(note);
       }
     } catch (error) {
       console.error('Error toggling like:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to like note",
-        variant: "destructive"
-      });
     }
   };
 
