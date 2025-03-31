@@ -18,8 +18,8 @@ const Explore: React.FC = () => {
   const { toast } = useToast();
 
   const { data: notes = [], isLoading, error } = useQuery({
-    queryKey: ['notes'],
-    queryFn: getNotes,
+    queryKey: ['notes', filters],
+    queryFn: () => getNotes(filters),
     staleTime: 1000 * 60, // Consider data fresh for 1 minute
     refetchOnWindowFocus: true,
   });

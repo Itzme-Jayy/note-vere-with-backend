@@ -78,7 +78,7 @@ export const getNotes = async (filter: Filter = {}): Promise<Note[]> => {
       ...note,
       id: note._id || note.id,
       authorId: note.author?._id || note.authorId,
-      likes: Array.isArray(note.likes) ? note.likes.map(like => 
+      likes: Array.isArray(note.likes) ? note.likes.map(like =>
         typeof like === 'string' ? like : like._id || like.id
       ) : [],
       files: note.files || [],
@@ -121,7 +121,7 @@ export const getUserNotes = async (userId: string): Promise<Note[]> => {
 
     const { data } = await api.get<Note[]>(`/notes?author=${userId}`);
     console.log('Received notes data:', data);
-    
+
     if (!Array.isArray(data)) {
       console.error('Received invalid data format:', data);
       throw new Error('Invalid response format from server');
@@ -134,7 +134,7 @@ export const getUserNotes = async (userId: string): Promise<Note[]> => {
           ...note,
           id: note._id || note.id,
           authorId: note.author?._id || note.authorId,
-          likes: Array.isArray(note.likes) ? note.likes.map(like => 
+          likes: Array.isArray(note.likes) ? note.likes.map(like =>
             typeof like === 'string' ? like : like._id || like.id
           ) : [],
           files: note.files || [],
@@ -160,7 +160,7 @@ export const getUserNotes = async (userId: string): Promise<Note[]> => {
       status: error.response?.status,
       stack: error.stack
     });
-    
+
     if (error.response?.data?.error) {
       throw new Error(error.response.data.error);
     }
@@ -185,7 +185,7 @@ export const getNoteById = async (noteId: string): Promise<Note> => {
       subject: data.subject,
       files: data.files || [],
       authorId: data.author?._id || data.authorId,
-      likes: Array.isArray(data.likes) ? data.likes.map(like => 
+      likes: Array.isArray(data.likes) ? data.likes.map(like =>
         typeof like === 'string' ? like : like._id || like.id
       ) : [],
       author: data.author ? {
@@ -278,7 +278,7 @@ export const updateNote = async (noteId: string, noteData: Partial<Note>): Promi
   try {
     const { data } = await api.put<Note>(`/notes/${noteId}`, noteData);
     // Ensure likes is always an array and handle both string IDs and User objects
-    data.likes = (data.likes || []).map(like => 
+    data.likes = (data.likes || []).map(like =>
       typeof like === 'string' ? like : like.id
     );
     return {
@@ -311,7 +311,7 @@ export const toggleLike = async (noteId: string): Promise<Note> => {
       throw new Error('Authentication required');
     }
 
-    const response = await axios.post(
+    const response = await axios.post<{ note: Note }>(
       `${API_URL}/notes/${noteId}/like`,
       {},
       {
@@ -343,7 +343,7 @@ export const toggleNotePrivacy = async (noteId: string): Promise<Note> => {
       subject: data.subject,
       files: data.files || [],
       authorId: data.author?._id || data.authorId,
-      likes: Array.isArray(data.likes) ? data.likes.map(like => 
+      likes: Array.isArray(data.likes) ? data.likes.map(like =>
         typeof like === 'string' ? like : like._id || like.id
       ) : [],
       author: data.author ? {
@@ -360,7 +360,7 @@ export const toggleNotePrivacy = async (noteId: string): Promise<Note> => {
 };
 
 // New API to get user profile info with their notes
-export const getUserProfile = async (userId: string): Promise<{user: User, notes: Note[]}> => {
+export const getUserProfile = async (userId: string): Promise<{ user: User, notes: Note[] }> => {
   try {
     const [userData, notesData] = await Promise.all([
       api.get<User>(`/users/${userId}`),
@@ -373,7 +373,7 @@ export const getUserProfile = async (userId: string): Promise<{user: User, notes
         ...note,
         id: note._id || note.id,
         authorId: note.author?._id || note.authorId,
-        likes: Array.isArray(note.likes) ? note.likes.map(like => 
+        likes: Array.isArray(note.likes) ? note.likes.map(like =>
           typeof like === 'string' ? like : like._id || like.id
         ) : [],
         files: note.files || [],
