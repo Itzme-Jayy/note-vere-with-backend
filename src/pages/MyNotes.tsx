@@ -22,7 +22,9 @@ const MyNotes = () => {
       
       setIsLoading(true);
       try {
+        console.log('Fetching notes for user:', user.id);
         const userNotes = await getUserNotes(user.id);
+        console.log('Fetched notes:', userNotes);
         setNotes(userNotes);
         setFilteredNotes(userNotes);
       } catch (error) {

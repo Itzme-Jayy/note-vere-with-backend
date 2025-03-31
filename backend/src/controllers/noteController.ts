@@ -306,12 +306,18 @@ export const toggleLike = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Note not found" });
     }
 
+    // Convert userId to string for comparison
+    const userIdString = userId.toString();
+
     // Check if user has already liked the note
-    const hasLiked = note.likes.includes(userId);
+    const hasLiked = note.likes.some(likeId => {
+      const likeIdString = likeId.toString();
+      return likeIdString === userIdString;
+    });
 
     if (hasLiked) {
       // Unlike: Remove user from likes array
-      note.likes = note.likes.filter(id => !id.equals(userId));
+      note.likes = note.likes.filter(likeId => likeId.toString() !== userIdString);
     } else {
       // Like: Add user to likes array
       note.likes.push(userId);
@@ -324,6 +330,14 @@ export const toggleLike = async (req: Request, res: Response) => {
     const updatedNote = await Note.findById(noteId)
       .populate('author', 'username email')
       .populate('likes', 'username email');
+
+    console.log('Note likes after update:', {
+      noteId,
+      userId: userIdString,
+      hasLiked,
+      likesCount: note.likes.length,
+      likes: note.likes.map(id => id.toString())
+    });
 
     res.json({
       message: hasLiked ? "Note unliked successfully" : "Note liked successfully",

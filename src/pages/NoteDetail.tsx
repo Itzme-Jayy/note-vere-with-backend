@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Note } from "@/types";
-import { getNoteById, deleteNote, toggleLikeNote, toggleNotePrivacy } from "@/services/api";
+import { getNoteById, deleteNote, toggleLike, toggleNotePrivacy } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -33,14 +33,19 @@ const NoteDetail = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  const isOwner = user && note && (user.id === note.authorId);
+  const isOwner = user && note && (
+    user.id === note.authorId || 
+    user.id === note.author?._id || 
+    user._id === note.authorId || 
+    user._id === note.author?._id
+  );
   
   const likes = note?.likes || [];
   const isLiked = user && note ? likes.some(like => {
     if (typeof like === 'string') {
-      return like === user.id;
+      return like === user.id || like === user._id;
     }
-    return like && (like.id || like._id) === user.id;
+    return like && (like.id || like._id) === (user.id || user._id);
   }) : false;
 
   useEffect(() => {
@@ -102,7 +107,9 @@ const NoteDetail = () => {
     if (!noteId || !user) return;
     
     try {
-      const updatedNote = await toggleLikeNote(noteId);
+      const noteToLike = note?._id || note?.id || noteId;
+      console.log('Attempting to like note with ID:', noteToLike);
+      const updatedNote = await toggleLike(noteToLike);
       setNote(updatedNote);
       toast({
         title: isLiked ? "Note unliked" : "Note liked",

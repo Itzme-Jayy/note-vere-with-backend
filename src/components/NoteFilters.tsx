@@ -16,6 +16,7 @@ const NoteFilters: React.FC<NoteFiltersProps> = ({ filter, setFilter }) => {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [years, setYears] = useState<Year[]>([]);
   const [searchTerm, setSearchTerm] = useState(filter.search || "");
+  const [subjectTerm, setSubjectTerm] = useState(filter.subject || "");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -40,11 +41,16 @@ const NoteFilters: React.FC<NoteFiltersProps> = ({ filter, setFilter }) => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setFilter(prev => ({ ...prev, search: searchTerm }));
+    setFilter(prev => ({ 
+      ...prev, 
+      search: searchTerm,
+      subject: subjectTerm 
+    }));
   };
 
   const handleReset = () => {
     setSearchTerm("");
+    setSubjectTerm("");
     setFilter({});
   };
 
@@ -66,6 +72,17 @@ const NoteFilters: React.FC<NoteFiltersProps> = ({ filter, setFilter }) => {
             placeholder="Search by title or content..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-8"
+          />
+        </div>
+
+        <div className="flex-1 relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search by subject..."
+            value={subjectTerm}
+            onChange={(e) => setSubjectTerm(e.target.value)}
             className="pl-8"
           />
         </div>

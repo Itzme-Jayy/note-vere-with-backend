@@ -19,7 +19,7 @@ router.get('/:id', getNoteById);
 router.post('/', protect, createNote);
 router.put('/:id', protect, updateNote);
 router.delete('/:id', protect, deleteNote);
-router.post('/:id/like', protect, toggleLike);
-router.post('/:id/privacy', protect, togglePrivacy);
+router.post('/:noteId/like', protect, toggleLike);
+router.put('/:noteId/privacy', protect, togglePrivacy);
 
 export default router; 
